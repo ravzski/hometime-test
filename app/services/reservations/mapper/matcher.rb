@@ -33,6 +33,12 @@ module Reservations
         infants
       )
       
+      CROSSOVER_FIELDS = %w(
+        adults
+        children
+        infants
+      )
+
       attr_reader :result
 
       #
@@ -65,9 +71,25 @@ module Reservations
         @simplified_tree.each do |node|
           find_and_assign_associated_match(node)
         end
+        map_crossover_fields()
         @result
       rescue InvalidPayload=>e
         e.message
+      end
+
+      #
+      # @return [Array] - This new array is the result of the mapping process
+      # - map out CROSSOVER_FIELDS from guest to reservations
+      # - because these fields are common to both reservation and guest
+      # - and we want to keep the reservation fields in the reservation table
+      #
+      def map_crossover_fields
+        @result['guest'].keys.each do |t|
+          if CROSSOVER_FIELDS.include?(t)
+            @result['reservation'][t] = @result['guest'][t] 
+            @result['guest'].delete(t)
+          end
+        end
       end
 
       #
@@ -81,11 +103,15 @@ module Reservations
         return unless (RESERVATION_FIELDS+GUEST_FIELDS).include?(node[:leaf_node])
 
         PARENT_FIELDS.each do |parent_field|
+          # skips fields that not in the constants
+          next unless self.class.const_get("#{parent_field.upcase}_FIELDS").include?(node[:leaf_node])
+          
+          next unless node[:parent_nodes].include?(parent_field)
           parent_association = find_parent_association(node,parent_field)
           next if parent_association.nil?    
           @result[parent_association][node[:leaf_node]] = node[:value] 
           return    
-        end
+        end        
       end
 
     end

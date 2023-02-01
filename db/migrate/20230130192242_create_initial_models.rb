@@ -9,10 +9,10 @@ class CreateInitialModels < ActiveRecord::Migration[7.0]
       t.integer :adults
       t.integer :children
       t.integer :infants
+      t.integer :guests
       t.decimal :security_price, precision: 10, scale: 2
       t.decimal :total_price, precision: 10, scale: 2
       t.decimal :payout_price, precision: 10, scale: 2
-      t.integer :guest_id
       t.integer :active_status_event_id
       t.string :currency
       t.timestamps
@@ -22,6 +22,7 @@ class CreateInitialModels < ActiveRecord::Migration[7.0]
     create_table :reservation_status_events do |t|
       t.string :status
       t.text :remarks
+      t.integer :reservation_id
       t.timestamps
     end
 
@@ -31,11 +32,15 @@ class CreateInitialModels < ActiveRecord::Migration[7.0]
       t.string :last_name
       t.string :phone_numbers, array: true, default: []
       t.string :email
+      t.integer :reservation_id
       t.timestamps
     end
 
     add_index(:reservations, :active_status_event_id)
-    add_index(:reservations, :guest_id)
+    add_index(:reservation_status_events, :reservation_id)
+    add_index(:guests, :reservation_id, unique: true)
+    add_index(:guests, :email, unique: true)
+    add_index(:reservations, :code, unique: true)
 
     create_table :reservation_status_settings do |t|
       t.string :name

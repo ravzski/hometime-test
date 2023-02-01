@@ -3,7 +3,7 @@ module Reservations
       
     class InvalidRequestError < StandardError
       def message
-        "Invalid Promo Code"
+        "Invalid Request"
       end
     end
 

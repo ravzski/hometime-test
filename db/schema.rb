@@ -20,15 +20,20 @@ ActiveRecord::Schema[7.0].define(version: 2023_01_30_192242) do
     t.string "last_name"
     t.string "phone_numbers", default: [], array: true
     t.string "email"
+    t.integer "reservation_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_guests_on_email", unique: true
+    t.index ["reservation_id"], name: "index_guests_on_reservation_id", unique: true
   end
 
   create_table "reservation_status_events", force: :cascade do |t|
     t.string "status"
     t.text "remarks"
+    t.integer "reservation_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["reservation_id"], name: "index_reservation_status_events_on_reservation_id"
   end
 
   create_table "reservation_status_settings", force: :cascade do |t|
@@ -46,16 +51,16 @@ ActiveRecord::Schema[7.0].define(version: 2023_01_30_192242) do
     t.integer "adults"
     t.integer "children"
     t.integer "infants"
+    t.integer "guests"
     t.decimal "security_price", precision: 10, scale: 2
     t.decimal "total_price", precision: 10, scale: 2
     t.decimal "payout_price", precision: 10, scale: 2
-    t.integer "guest_id"
     t.integer "active_status_event_id"
     t.string "currency"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["active_status_event_id"], name: "index_reservations_on_active_status_event_id"
-    t.index ["guest_id"], name: "index_reservations_on_guest_id"
+    t.index ["code"], name: "index_reservations_on_code", unique: true
   end
 
 end
