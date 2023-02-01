@@ -10,10 +10,31 @@ module Reservations
       # eg. first_name could be firstname or firstnme
       LEV_DISTANCE_THRESHOLD = 2
 
-
+      # since we are only mapping reservation and guest
+      # if in the future, another model is to be mapped,
+      # this array needs to be updated
       PARENT_FIELDS = %w(
         guest
         reservation
+      )
+
+      # list of fields that are not to be mapped
+      # these fields are mapped because if a heustic is used to find the closest match
+      # it might cause some issues
+      SPECIAL_MAPPED_FIELDS = {
+        listing_security_price_accurate: 'security_price',
+        expected_payout_amount: 'payout_price',
+        total_paid_amount_accurate: 'total_price',
+        total_price: 'total_price',
+        status_type: 'status',
+        phone: 'phone_numbers'
+      }.with_indifferent_access
+
+      # list of fields that are to be mapped
+      # eg. number_of_infants to be mapped to infants
+      PREFIX_MAPPED_FIELDS = %w(
+        number_of
+        host
       )
 
       private
@@ -86,8 +107,17 @@ module Reservations
         parent_nodes = ['reservation'] if parent_nodes.blank?
         leaf_node.split('_').each do |exploded_leaf_node|
           PARENT_FIELDS.each do |parent_field|
-            parent_nodes << parent_field if exploded_leaf_node.include?(parent_field)
+            # if the leaf node has a parent field, then add it to the parent nodes
+            # eg. guest_first_name => parent_nodes = ['guest']
+            if exploded_leaf_node.include?(parent_field)
+              parent_nodes << parent_field 
+            end
           end
+        end
+
+        # removes details_ or _details
+        parent_nodes.each_with_index do |node,index|
+          parent_nodes[index] = node.gsub('details_','').gsub('_details','')
         end
         parent_nodes.uniq
       end
@@ -101,6 +131,15 @@ module Reservations
         PARENT_FIELDS.each do |parent_field|
           leaf_node.gsub!("#{parent_field}_", "")
           leaf_node.gsub!("_#{parent_field}", "")
+        end
+
+        # if leafnode is special, then return the special field
+        special_field = SPECIAL_MAPPED_FIELDS[leaf_node]
+        return special_field if special_field.present?
+
+        # if leafnode has a special prefix, then remove the prefix
+        PREFIX_MAPPED_FIELDS.each do |prefix|
+          leaf_node.gsub!("#{prefix}_", "") if leaf_node.include?(prefix)
         end
         leaf_node
       end

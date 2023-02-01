@@ -4,7 +4,7 @@ module Reservations
     include Exceptions
 
     def initialize(params)
-      @params = params
+      @mapper = Reservations::Mapper::Matcher.new(params)
     end
 
   end

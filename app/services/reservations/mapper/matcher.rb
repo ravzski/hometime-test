@@ -12,9 +12,7 @@ module Reservations
         start_date
         end_date
         nights
-        adults
-        children
-        infants
+        guests
         security_price
         total_price
         payout_price
@@ -26,22 +24,24 @@ module Reservations
       # these are the only fields to be mapped
       GUEST_FIELDS = %w(
         first_name
-        description
+        localized_description
         last_name
         phone_numbers
         email
+        adults
+        children
+        infants
       )
       
+      attr_reader :result
+
       #
       # @param [Hash] params
       # @return [Hash] - This new hash is the result of the mapping process
       #
       def initialize(params)
-        @reservation_fields = RESERVATION_FIELDS.dup
-        @guest_fields = GUEST_FIELDS.dup
-        @params = params
         @flat_params = flatten_hash(params)
-        @flat_params_keys = @flat_params.keys
+        @simplified_tree = create_simplified_hash_tree()
         @dl = DamerauLevenshtein
         @result = {
           reservation: {},
@@ -58,63 +58,16 @@ module Reservations
       # - and for each parent node, find the corresponding key in the params
       # - and then map the value to the corresponding key in the new hash
 
-      # given: 
-      # {
-      #   "reservation": {
-      #     "code": "XXX12345678",
-      #     "start_date": "2021-03-12",
-      #     "end_date": "2021-03-16",
-      #     "expected_payout_amount": "3800.00",
-      #     "guest_details": {
-      #       "localized_description": "4 guests",
-      #       "number_of_adults": 2,
-      #       "number_of_children": 2,
-      #       "number_of_infants": 0
-      #     },
-      #     "guest_email": "wayne_woodbridge@bnb.com",
-      #     "guest_first_name": "Wayne",
-      #     "guest_last_name": "Woodbridge",
-      #     "guest_phone_numbers": [
-      #       "639123456789",
-      #       "639123456789"
-      #     ],
-      #     "listing_security_price_accurate": "500.00",
-      #     "host_currency": "AUD",
-      #     "nights": 4,
-      #     "number_of_guests": 4,
-      #     "status_type": "accepted",
-      #     "total_paid_amount_accurate": "4300.00"
-      # } }
-      # will result to
-      # [{:parent_nodes=>["reservation"], :leaf_node=>"code", :value=>"XXX12345678"},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"start_date", :value=>"2021-03-12"},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"end_date", :value=>"2021-03-16"},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"expected_payout_amount", :value=>"3800.00"},
-      # {:parent_nodes=>["reservation", "guest_details"], :leaf_node=>"localized_description", :value=>"4 guests"},
-      # {:parent_nodes=>["reservation", "guest_details"], :leaf_node=>"number_of_adults", :value=>2},
-      # {:parent_nodes=>["reservation", "guest_details"], :leaf_node=>"number_of_children", :value=>2},
-      # {:parent_nodes=>["reservation", "guest_details"], :leaf_node=>"number_of_infants", :value=>0},
-      # {:parent_nodes=>["reservation", "guest"], :leaf_node=>"email", :value=>"wayne_woodbridge@bnb.com"},
-      # {:parent_nodes=>["reservation", "guest"], :leaf_node=>"first_name", :value=>"Wayne"},
-      # {:parent_nodes=>["reservation", "guest"], :leaf_node=>"last_name", :value=>"Woodbridge"},
-      # {:parent_nodes=>["reservation", "guest"], :leaf_node=>"phone_numbers", :value=>["639123456789", "639123456789"]},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"listing_security_price_accurate", :value=>"500.00"},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"host_currency", :value=>"AUD"},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"nights", :value=>4},
-      # {:parent_nodes=>["reservation", "guest"], :leaf_node=>"number_ofs", :value=>4},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"status_type", :value=>"accepted"},
-      # {:parent_nodes=>["reservation"], :leaf_node=>"total_paid_amount_accurate", :value=>"4300.00"}]
-      #
       def match_payload
         # guest could be an array of guest if requirement permits
-        new_hash_tree = simplified_hash_tree()
-        raise InvalidPayload if new_hash_tree.blank?
-        new_hash_tree.each do |node|
+        raise InvalidPayload if @simplified_tree.blank?
+
+        @simplified_tree.each do |node|
           find_and_assign_associated_match(node)
         end
         @result
       rescue InvalidPayload=>e
-        puts e.message
+        e.message
       end
 
       #
@@ -134,23 +87,6 @@ module Reservations
           return    
         end
       end
-
-      #
-      # This will find first if the key has an exact value of the base field
-      #
-      # def find_simple_match(node)
-      #   # simplest case, the key is already in the reservation_fields
-      #   if @reservation_fields.include?(node[:leaf_node])
-      #     @result[:reservation][node[:lead_node]] = node[:value]
-      #     return true
-      #   end
-
-      #   if @guest_fields.include?(node[:leaf_node])
-      #     @result[:guest][node][:lead_node] = field[:value]
-      #     return true
-      #   end
-      #   retur nil
-      # end
 
     end
   end
