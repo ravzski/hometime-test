@@ -1,0 +1,5 @@
+
+class ReservationStatusSetting < ApplicationRecord
+
+
+end

@@ -1,0 +1,5 @@
+
+class ReservationStatusEvent < ApplicationRecord
+
+
+end
